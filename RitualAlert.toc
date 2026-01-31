@@ -1,0 +1,14 @@
+## Interface: 110207,120000,120001
+## Title: |cff9a6bffRitual Alert|r Midnight Twilight Ascension
+## Notes: Alerts with flash and sound when the Midnight ritual starts or is interrupted.
+## Notes-esES: Alertas con flash y sonido cuando inicia o se interrumpe el ritual de Midnight.
+## Notes-esMX: Alertas con flash y sonido cuando inicia o se interrumpe el ritual de Midnight.
+## Author: Xamael
+## Version: 1.0.0
+## X-Localizations: enUS, esES, esMX
+## X-CompatibleLocales: enUS, enGB, esES, esMX
+## SavedVariables: RitualAlertDB
+## IconTexture: Interface\AddOns\RitualAlert\Textures\icon_help.tga
+
+Localization.lua
+RitualAlert.lua
