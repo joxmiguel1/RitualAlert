@@ -1,9 +1,19 @@
 local addonName, addonTable = ...
 local L = addonTable and addonTable.L or {}
+local UI = L.ui or {}
+local function LUI(key, fallback)
+    return UI[key] or fallback
+end
 
 -- ==== SAVED SETTINGS ====
 local DEFAULT_SETTINGS = {
     enabled = {
+        start = true,
+        interrupt = true,
+        eclipse = true,
+        void = true,
+    },
+    sound = {
         start = true,
         interrupt = true,
         eclipse = true,
@@ -36,8 +46,23 @@ local function InitDB()
     if type(RitualAlertDB.tomtom) ~= "table" then
         RitualAlertDB.tomtom = {}
     end
+    if type(RitualAlertDB.sound) ~= "table" then
+        RitualAlertDB.sound = {}
+    end
     if RitualAlertDB.tomtom.enabled == nil then
         RitualAlertDB.tomtom.enabled = DEFAULT_SETTINGS.tomtom.enabled
+    end
+    if RitualAlertDB.sound.start == nil then
+        RitualAlertDB.sound.start = DEFAULT_SETTINGS.sound.start
+    end
+    if RitualAlertDB.sound.interrupt == nil then
+        RitualAlertDB.sound.interrupt = DEFAULT_SETTINGS.sound.interrupt
+    end
+    if RitualAlertDB.sound.eclipse == nil then
+        RitualAlertDB.sound.eclipse = DEFAULT_SETTINGS.sound.eclipse
+    end
+    if RitualAlertDB.sound["void"] == nil then
+        RitualAlertDB.sound["void"] = DEFAULT_SETTINGS.sound["void"]
     end
     if RitualAlertDB.debug == nil then
         RitualAlertDB.debug = DEFAULT_SETTINGS.debug
@@ -85,49 +110,95 @@ local function CreateOptionsPanel()
 
     local title = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
     title:SetPoint("TOPLEFT", banner, "BOTTOMLEFT", 0, -28)
-    title:SetText("Ritual Alerts")
+    title:SetText(LUI("title", "Ritual Alerts"))
     title:SetTextColor(purple[1], purple[2], purple[3])
 
     local subtitle = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     subtitle:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -6)
     subtitle:SetWidth(520)
     subtitle:SetJustifyH("LEFT")
-    subtitle:SetText("Enable or disable alerts for Twilight Ascension ritual messages.")
+    subtitle:SetText(LUI("subtitle", "Enable or disable alerts for Twilight Ascension ritual messages."))
     subtitle:SetTextColor(1, 1, 1)
 
     local alertsHeader = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     alertsHeader:SetPoint("TOPLEFT", subtitle, "BOTTOMLEFT", 0, -12)
-    alertsHeader:SetText("Alerts")
+    alertsHeader:SetText(LUI("alerts_header", "Alerts"))
     alertsHeader:SetTextColor(purple[1], purple[2], purple[3])
+
+    local SOUND_ON_TEX = "Interface\\Common\\VoiceChat-Speaker"
+    local SOUND_OFF_TEX = "Interface\\Common\\VoiceChat-Muted"
+
+    local function UpdateSoundButton(button, enabled)
+        if enabled then
+            button.icon:SetTexture(SOUND_ON_TEX)
+            button.icon:SetAlpha(1)
+        else
+            button.icon:SetTexture(SOUND_OFF_TEX)
+            button.icon:SetAlpha(0.9)
+        end
+    end
+
+    local function CreateSoundButton(anchorText, key)
+        local btn = CreateFrame("Button", nil, panel)
+        btn:SetSize(16, 16)
+        btn:SetPoint("LEFT", anchorText, "RIGHT", 8, 0)
+        btn.icon = btn:CreateTexture(nil, "ARTWORK")
+        btn.icon:SetAllPoints()
+        btn.SoundKey = key
+        btn:SetScript("OnClick", function(self)
+            InitDB()
+            local current = RitualAlertDB.sound[self.SoundKey] ~= false
+            RitualAlertDB.sound[self.SoundKey] = not current
+            UpdateSoundButton(self, not current)
+        end)
+        btn:SetScript("OnEnter", function(self)
+            if GameTooltip then
+                GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+                local current = RitualAlertDB and RitualAlertDB.sound and RitualAlertDB.sound[self.SoundKey] ~= false
+                GameTooltip:SetText(current and LUI("sound_on", "Sound: On") or LUI("sound_off", "Sound: Off"), 1, 1, 1)
+                GameTooltip:Show()
+            end
+        end)
+        btn:SetScript("OnLeave", function()
+            if GameTooltip then
+                GameTooltip:Hide()
+            end
+        end)
+        return btn
+    end
 
     local cbStart = CreateFrame("CheckButton", nil, panel, "InterfaceOptionsCheckButtonTemplate")
     cbStart:SetPoint("TOPLEFT", alertsHeader, "BOTTOMLEFT", -2, -6)
-    cbStart.Text:SetText("Begun summoning (ritual started)")
+    cbStart.Text:SetText(LUI("alert_start", "Begun summoning (ritual started)"))
     cbStart.Text:SetTextColor(1, 1, 1)
+    local sbStart = CreateSoundButton(cbStart.Text, "start")
 
     local cbInterrupt = CreateFrame("CheckButton", nil, panel, "InterfaceOptionsCheckButtonTemplate")
     cbInterrupt:SetPoint("TOPLEFT", cbStart, "BOTTOMLEFT", 0, -8)
-    cbInterrupt.Text:SetText("Ritual interrupted")
+    cbInterrupt.Text:SetText(LUI("alert_interrupt", "Ritual interrupted"))
     cbInterrupt.Text:SetTextColor(1, 1, 1)
+    local sbInterrupt = CreateSoundButton(cbInterrupt.Text, "interrupt")
 
     local cbEclipse = CreateFrame("CheckButton", nil, panel, "InterfaceOptionsCheckButtonTemplate")
     cbEclipse:SetPoint("TOPLEFT", cbInterrupt, "BOTTOMLEFT", 0, -8)
-    cbEclipse.Text:SetText("Voice of the Eclipse")
+    cbEclipse.Text:SetText(LUI("alert_eclipse", "Voice of the Eclipse"))
     cbEclipse.Text:SetTextColor(1, 1, 1)
+    local sbEclipse = CreateSoundButton(cbEclipse.Text, "eclipse")
 
     local cbVoid = CreateFrame("CheckButton", nil, panel, "InterfaceOptionsCheckButtonTemplate")
     cbVoid:SetPoint("TOPLEFT", cbEclipse, "BOTTOMLEFT", 0, -8)
-    cbVoid.Text:SetText("Ephemeral Void manifested")
+    cbVoid.Text:SetText(LUI("alert_void", "Ephemeral Void manifested"))
     cbVoid.Text:SetTextColor(1, 1, 1)
+    local sbVoid = CreateSoundButton(cbVoid.Text, "void")
 
     local tomTomHeader = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     tomTomHeader:SetPoint("TOPLEFT", cbVoid, "BOTTOMLEFT", 2, -12)
-    tomTomHeader:SetText("TomTom")
+    tomTomHeader:SetText(LUI("tomtom_header", "TomTom"))
     tomTomHeader:SetTextColor(purple[1], purple[2], purple[3])
 
     local cbTomTom = CreateFrame("CheckButton", nil, panel, "InterfaceOptionsCheckButtonTemplate")
     cbTomTom:SetPoint("TOPLEFT", tomTomHeader, "BOTTOMLEFT", -2, -6)
-    cbTomTom.Text:SetText("TomTom: Automatic waypoint for any alert")
+    cbTomTom.Text:SetText(LUI("tomtom_desc", "TomTom: Automatic waypoint for any alert"))
     cbTomTom.Text:SetTextColor(1, 1, 1)
 
     local function Refresh()
@@ -137,6 +208,10 @@ local function CreateOptionsPanel()
         cbEclipse:SetChecked(RitualAlertDB.enabled.eclipse ~= false)
         cbTomTom:SetChecked(RitualAlertDB.tomtom and RitualAlertDB.tomtom.enabled ~= false)
         cbVoid:SetChecked(RitualAlertDB.enabled["void"] ~= false)
+        UpdateSoundButton(sbStart, RitualAlertDB.sound.start ~= false)
+        UpdateSoundButton(sbInterrupt, RitualAlertDB.sound.interrupt ~= false)
+        UpdateSoundButton(sbEclipse, RitualAlertDB.sound.eclipse ~= false)
+        UpdateSoundButton(sbVoid, RitualAlertDB.sound["void"] ~= false)
     end
 
     cbStart:SetScript("OnClick", function(self)
@@ -296,7 +371,9 @@ local function TriggerAlert(alertDef, rawMessage)
         msg = "Ritual Alert"
     end
     ShowAlert(msg, alertDef.color[1], alertDef.color[2], alertDef.color[3])
-    if alertDef.sound then alertDef.sound() end
+    if alertDef.sound and RitualAlertDB and RitualAlertDB.sound and RitualAlertDB.sound[alertDef.key] ~= false then
+        alertDef.sound()
+    end
 end
 
 local function TryTomTomWaypointFromMessage(rawMessage, attemptsLeft)
